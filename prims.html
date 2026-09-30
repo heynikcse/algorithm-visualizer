@@ -3,54 +3,90 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Step-by-step Prim minimum spanning tree visualizer">
 <meta name="theme-color" content="#ff6a00">
 <title>Prim's | Algorithm Lab</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800;900&family=JetBrains+Mono:wght@400;600&display=swap">
 <link rel="stylesheet" href="css/base.css">
-<!-- Add css/prims.css here only if you need styles that base.css does not have -->
+<link rel="stylesheet" href="css/prims.css">
 </head>
 <body>
 <header id="siteNav"></header>
 
-<main class="wrap">
+<main id="top" class="wrap">
   <section class="hero">
     <div class="hero-box">
-      <h1>Prim's algorithm, step by step.</h1>
-      <p>TODO: one or two sentences explaining what Prim's does.</p>
+      <h1>See every step of Prim's algorithm.</h1>
+      <p>Choose a start vertex, grow the minimum spanning tree one vertex at a time by always picking the cheapest cut edge, and update neighbor connections.</p>
+      <div class="cta">
+        <a class="btn" href="#graph">Build a graph</a>
+        <a class="btn" href="#steps-sec">Read the steps</a>
+      </div>
+      <div class="pills">
+        <span class="pill">Start vertex selection</span>
+        <span class="pill">Cut edge &amp; key updates</span>
+        <span class="pill">Draw edges on the graph</span>
+        <span class="pill">Connection format [weight, parent]</span>
+        <span class="pill">Negative weights allowed</span>
+      </div>
     </div>
   </section>
 
-  <!-- Same section ids as the Dijkstra page, so links and styles match. -->
   <section class="blk" id="graph">
     <h2 class="sec-h">Graph</h2>
-    <p class="sec-s">TODO: short instruction for entering the graph.</p>
+    <p class="sec-s">Type your vertices (or just a number like 5) and the nodes appear straight away. Then add edges and a start vertex. Edges are undirected.</p>
     <div class="work">
-      <div class="box card" id="inputCard">
+      <div class="box card" id="inputCard" aria-label="Graph input">
         <h2>Your graph</h2>
-        <!-- TODO: inputs (vertices, edges, start vertex...) and buttons. Copy the markup from dijkstra.html. -->
+        <label for="verts">Vertices (separate with commas or spaces)</label>
+        <input id="verts" placeholder="e.g. a, b, c, d, e, f  or just a number like 5" autocomplete="off">
+        <div style="margin:16px 0 4px"><label>Edges</label>
+          <div class="row head k"><span>From</span><span>To</span><span>Weight</span><span></span></div>
+          <div id="edges"></div>
+          <button id="addEdge" type="button">Add edge</button>
+        </div>
+        <label for="src" style="margin-top:16px">Start vertex</label>
+        <input id="src" placeholder="first vertex if left empty" autocomplete="off">
+        <div class="bar">
+          <button class="primary" id="run" type="button">Run Prim</button>
+          <button id="ex" type="button">Load example</button>
+          <button id="clr" type="button">Clear</button>
+        </div>
+        <div class="err" id="err" role="alert"></div>
       </div>
-      <div class="box card">
+      <div class="box card" aria-label="Graph view">
         <h2>Graph view</h2>
-        <div class="gwrap"><svg id="svg" viewBox="0 0 420 340" aria-label="Graph drawing"></svg></div>
+        <div class="ghint" id="ghint"></div>
+        <div class="gwrap"><svg id="svg" viewBox="0 0 420 340" aria-label="Graph drawing"></svg><input id="gedit" hidden aria-label="Edit value"></div>
+        <div class="gmsg" id="gmsg" role="alert"></div>
         <div class="gnav">
           <button id="prev" type="button" disabled>Previous</button>
           <button id="next" type="button" disabled>Next</button>
-          <span id="stepLabel"></span>
+          <span id="stepLabel">Type vertices to begin.</span>
         </div>
+        <div class="chips" id="chips"></div>
+        <div class="legend">
+          <span><i class="sw v"></i>In MST (number = order)</span>
+          <span><i class="sw c"></i>Just added vertex</span>
+          <span><i class="sw f"></i>Fringe (temporary key)</span>
+          <span><i class="lg o"></i>MST edge</span>
+          <span><i class="lg k"></i>Just added edge</span>
+          <span><i class="lg cut"></i>Candidate cut edge</span>
+        </div>
+        <p class="legend2">Every edge you draw is added to the Edges table on the left, and edits in the table update the graph.</p>
       </div>
     </div>
   </section>
 
   <section class="blk" id="steps-sec">
     <h2 class="sec-h">Steps</h2>
-    <p class="sec-s">Tap a step to show that moment in the graph.</p>
-    <div id="steps">
-      <div class="todo"><h3>Prim's is coming soon</h3><p>This page is a template. Build the algorithm in js/prims.js and fill #steps and #final.</p></div>
-    </div>
+    <p class="sec-s">Tap an iteration to show that moment in the graph.</p>
+    <div id="steps"></div>
   </section>
 
   <section class="blk" id="result">
     <h2 class="sec-h">Result</h2>
+    <p class="sec-s">The chosen edges connect all reachable vertices into a minimum spanning tree.</p>
     <div id="final"></div>
   </section>
 </main>

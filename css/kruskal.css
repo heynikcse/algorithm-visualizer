@@ -1,0 +1,44 @@
+/* kruskal.css  (only what is specific to the Kruskal page) */
+
+/* edge input rows: From | To | Weight | remove  (no direction column) */
+.row.k{grid-template-columns:1fr 1fr .8fr auto}
+@media(max-width:600px){
+  .row.k{grid-template-columns:1fr 1fr}
+  .row.k input:nth-of-type(3){grid-column:1/-1}
+}
+
+/* ---------- the sorted edge table: Edge / Weight / MST ---------- */
+.tabwrap{margin-top:14px;overflow-x:auto;border:2px solid var(--ink);background:var(--bg)}
+.etab{border-collapse:collapse;min-width:100%;font-family:"JetBrains Mono",monospace;font-size:.85rem}
+.etab th,.etab td{border:2px solid var(--ink);padding:7px 12px;text-align:center;white-space:nowrap}
+.etab th.rh{position:sticky;left:0;z-index:1;background:var(--soft);text-align:left;font-family:"Archivo",sans-serif;font-weight:800}
+.etab td.yes{color:var(--ok);font-weight:800}
+.etab td.no{color:var(--bad);font-weight:800}
+.etab td.pend{color:var(--mute)}
+.etab td.cur{background:var(--o);color:var(--ink)}
+.tnote{font-size:.82rem;color:var(--mute);margin:8px 0 0}
+
+/* ---------- legend ---------- */
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.82rem;margin:14px 0 0}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend2{color:var(--mute);font-size:.82rem;margin:8px 0 0}
+.lg{display:inline-block;width:22px;height:0;border-top:4px solid var(--ink)}
+.lg.o{border-color:var(--o);border-top-width:5px}
+.lg.k{border-color:var(--ink);border-top-width:6px}
+.lg.r{border-color:var(--bad);border-top-style:dashed}
+.lg.g{border-color:#9a9a9a;border-top-width:2px;border-top-style:dashed}
+.lg.n{border-color:var(--mute);border-top-width:2px}
+.sw{width:14px;height:14px;border-radius:50%;display:inline-block;border:2px solid var(--ink)}
+.sw.o{background:var(--o)}
+
+/* ---------- chips under the graph ---------- */
+.chips{margin-top:14px;display:grid;gap:8px}
+.crow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.cl{font-weight:600;font-size:.8rem;min-width:9em}
+.chip{font-family:"JetBrains Mono",monospace;font-size:.8rem;padding:2px 9px;border:2px solid var(--ink);background:var(--bg);display:inline-flex;gap:6px;align-items:center}
+.chip i{font-style:normal;background:var(--ink);color:var(--bg);width:16px;height:16px;display:inline-grid;place-items:center;font-size:.68rem;font-weight:700}
+.chip em{font-style:normal}
+.chip.v{background:var(--o)}
+@media(max-width:600px){.cl{min-width:100%}}
+
+.no{color:var(--bad);font-weight:700}

@@ -4,23 +4,26 @@ Open `index.html` in a browser (no build step, no server needed).
 
 ```
 index.html        landing page (three full-width tabs)
-dijkstra.html     finished
-prims.html        template  -> friend builds js/prims.js
-kruskal.html      template  -> friend builds js/kruskal.js
+dijkstra.html     finished (shortest path visualizer)
+prims.html        finished (minimum spanning tree visualizer)
+kruskal.html      finished (minimum spanning tree visualizer)
 css/base.css      ALL shared styling (colours are the variables at the top)
 css/landing.css   landing page only
 css/dijkstra.css  Dijkstra-only bits (legend, chips)
+css/prims.css     Prim-only bits (legend, chips, cut edges, vertex table)
+css/kruskal.css   Kruskal-only bits (legend, chips, sorted edge table)
 js/common.js      shared helpers + the ALGOS list that builds the tabs and top bar
 js/dijkstra.js    Dijkstra logic and UI
-js/prims.js       empty, with notes
-js/kruskal.js     empty, with notes
+js/prims.js       Prim's logic and UI
+js/kruskal.js     Kruskal's logic and UI
 ```
 
-## Integrating Prim's / Kruskal's
-1. Open `prims.html` (or `kruskal.html`). It already has the top bar, header, Graph / Steps / Result sections and footer.
-2. Fill in the `TODO` parts, and write the algorithm in `js/prims.js` / `js/kruskal.js`.
-3. Copy patterns from `dijkstra.html` and `js/dijkstra.js`: the edge table, the SVG graph drawing, Previous/Next, step cards.
-4. Reuse the classes in `css/base.css` so the page matches. Do not hard-code colours; use the variables (`var(--o)`, `var(--ink)`...).
-5. Names, descriptions and links of the tabs live in one place: the `ALGOS` list in `js/common.js`.
-
-Tips: every JS file is a normal script that shares globals. Dijkstra declares `S`, `run`, `go`, `INF`... so those names are free in the other pages, because each page loads only its own script.
+## Features Across All Algorithms
+1. **Interactive Graph Building**: Type vertices or a count, add edges with weights in the table, or draw edges directly by clicking two vertices in the SVG graph.
+2. **Direct Weight Editing**: Click any edge weight badge directly on the SVG graph to edit it in place.
+3. **Step-by-Step Mathematical Visualizations**:
+   - **Dijkstra**: Minimum temporary label selection, neighbor distance relaxation, previous-hop tracking, shortest path highlight.
+   - **Kruskal**: Sorted edge table, component cycle detection, cumulative weight, minimum spanning tree/forest output.
+   - **Prim**: Start vertex selection, cut edge inspection, cheapest cut bridge selection, candidate key/parent updates, vertex key table per iteration.
+4. **Interactive Graph Stepping**: Step forward and backward using Previous/Next buttons or click directly on any iteration card to inspect that step's graph state.
+5. **No External Dependencies**: Works completely offline in any modern browser without builds, servers, or external libraries.
