@@ -9,9 +9,11 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800;900&family=JetBrains+Mono:wght@400;600&display=swap">
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/landing.css">
+<script src="js/common.js"></script>
 </head>
 <body>
 <header id="siteNav"></header>
+<script>mountNav();</script>
 
 <main class="wrap">
   <section class="intro">
@@ -21,19 +23,16 @@
 
   <!-- filled from ALGOS in js/common.js -->
   <nav class="tabs" id="tabs" aria-label="Choose an algorithm"></nav>
+  <script>
+    $('tabs').innerHTML = ALGOS.map(a =>
+      `<a class="tab" href="${a.href}">
+         <div><h2>${esc(a.name)}</h2><p>${esc(a.desc)}</p></div>
+         ${a.art}
+       </a>`).join('');
+  </script>
 </main>
 
 <footer id="siteFooter"></footer>
-
-<script src="js/common.js"></script>
-<script>
-  mountNav();
-  mountFooter();
-  $('tabs').innerHTML = ALGOS.map(a =>
-    `<a class="tab" href="${a.href}">
-       <div><h2>${esc(a.name)}</h2><p>${esc(a.desc)}</p></div>
-       ${a.art}
-     </a>`).join('');
-</script>
+<script>mountFooter();</script>
 </body>
 </html>
