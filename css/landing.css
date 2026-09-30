@@ -1,0 +1,30 @@
+/* landing.css  (index.html only) */
+.intro{padding:44px 0 26px}
+.intro h1{font-size:clamp(2.2rem,7vw,4.2rem);line-height:1.02;font-weight:900;letter-spacing:-.03em;margin:0 0 12px;max-width:16ch}
+.intro p{font-size:1.1rem;color:var(--mute);margin:0;max-width:52ch}
+
+.tabs{display:grid;gap:22px;padding-bottom:20px}
+.tab{display:grid;grid-template-columns:1fr minmax(160px,300px);align-items:center;gap:clamp(16px,4vw,48px);
+  min-height:clamp(150px,24vh,230px);padding:clamp(22px,4vw,44px);
+  background:var(--bg);color:var(--ink);text-decoration:none;
+  border:var(--bw) solid var(--ink);box-shadow:8px 8px 0 var(--ink);
+  transition:transform .12s,box-shadow .12s,background .12s}
+.tab:hover,.tab:focus-visible{background:var(--o);transform:translate(-4px,-4px);box-shadow:12px 12px 0 var(--ink)}
+.tab:active{transform:translate(4px,4px);box-shadow:2px 2px 0 var(--ink)}
+.tab h2{font-size:clamp(2.2rem,7.5vw,4.8rem);line-height:1;font-weight:900;letter-spacing:-.035em;margin:0 0 10px}
+.tab p{margin:0;max-width:44ch;font-size:1.02rem}
+
+/* mini graph on each tab */
+.tab svg{width:100%;max-height:130px}
+.tab svg line{stroke-linecap:square}
+.tab svg .thin{stroke:#9a9a9a;stroke-width:2}
+.tab svg .dash{stroke:var(--ink);stroke-width:2;stroke-dasharray:5 5}
+.tab svg .thick{stroke:var(--ink);stroke-width:6}
+.tab svg circle{fill:var(--o);stroke:var(--ink);stroke-width:3}
+.tab:hover svg circle,.tab:focus-visible svg circle{fill:var(--bg)}
+.tab:hover svg .thin,.tab:focus-visible svg .thin{stroke:var(--ink)}
+
+@media(max-width:700px){
+  .tab{grid-template-columns:1fr;box-shadow:6px 6px 0 var(--ink)}
+  .tab svg{max-height:90px;max-width:220px}
+}

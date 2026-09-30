@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Step-by-step visualizers for Dijkstra, Prim's and Kruskal's graph algorithms">
+<meta name="theme-color" content="#ff6a00">
+<title>Algorithm Lab</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800;900&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/landing.css">
+</head>
+<body>
+<header id="siteNav"></header>
+
+<main class="wrap">
+  <section class="intro">
+    <h1>Watch graph algorithms work, one step at a time.</h1>
+    <p>Pick an algorithm, build your own graph, and read every iteration.</p>
+  </section>
+
+  <!-- filled from ALGOS in js/common.js -->
+  <nav class="tabs" id="tabs" aria-label="Choose an algorithm"></nav>
+</main>
+
+<footer id="siteFooter"></footer>
+
+<script src="js/common.js"></script>
+<script>
+  mountNav();
+  mountFooter();
+  $('tabs').innerHTML = ALGOS.map(a =>
+    `<a class="tab" href="${a.href}">
+       <div><h2>${esc(a.name)}</h2><p>${esc(a.desc)}</p></div>
+       ${a.art}
+     </a>`).join('');
+</script>
+</body>
+</html>

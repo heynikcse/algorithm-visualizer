@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ff6a00">
+<title>Kruskal's | Algorithm Lab</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800;900&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/base.css">
+<!-- Add css/kruskal.css here only if you need styles that base.css does not have -->
+</head>
+<body>
+<header id="siteNav"></header>
+
+<main class="wrap">
+  <section class="hero">
+    <div class="hero-box">
+      <h1>Kruskal's algorithm, step by step.</h1>
+      <p>TODO: one or two sentences explaining what Kruskal's does.</p>
+    </div>
+  </section>
+
+  <!-- Same section ids as the Dijkstra page, so links and styles match. -->
+  <section class="blk" id="graph">
+    <h2 class="sec-h">Graph</h2>
+    <p class="sec-s">TODO: short instruction for entering the graph.</p>
+    <div class="work">
+      <div class="box card" id="inputCard">
+        <h2>Your graph</h2>
+        <!-- TODO: inputs (vertices, edges, start vertex...) and buttons. Copy the markup from dijkstra.html. -->
+      </div>
+      <div class="box card">
+        <h2>Graph view</h2>
+        <div class="gwrap"><svg id="svg" viewBox="0 0 420 340" aria-label="Graph drawing"></svg></div>
+        <div class="gnav">
+          <button id="prev" type="button" disabled>Previous</button>
+          <button id="next" type="button" disabled>Next</button>
+          <span id="stepLabel"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="blk" id="steps-sec">
+    <h2 class="sec-h">Steps</h2>
+    <p class="sec-s">Tap a step to show that moment in the graph.</p>
+    <div id="steps">
+      <div class="todo"><h3>Kruskal's is coming soon</h3><p>This page is a template. Build the algorithm in js/kruskal.js and fill #steps and #final.</p></div>
+    </div>
+  </section>
+
+  <section class="blk" id="result">
+    <h2 class="sec-h">Result</h2>
+    <div id="final"></div>
+  </section>
+</main>
+
+<footer id="siteFooter"></footer>
+
+<script src="js/common.js"></script>
+<script>mountNav('kruskal');mountFooter();</script>
+<script src="js/kruskal.js"></script>
+</body>
+</html>

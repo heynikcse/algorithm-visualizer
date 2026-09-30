@@ -1,0 +1,24 @@
+/* dijkstra.css  (only what is specific to the Dijkstra page) */
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.82rem;margin:14px 0 0}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend2{color:var(--mute);font-size:.82rem;margin:8px 0 0}
+.sw{width:14px;height:14px;border-radius:50%;display:inline-block;border:2px solid var(--ink)}
+.sw.v{background:var(--o)}
+.sw.c{border-width:4px}
+.sw.f{border:2px dashed var(--ink)}
+.sw.t{border-color:var(--ok);box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--ok)}
+.sw.p{border:0;border-radius:0;height:5px;width:18px;background:var(--ok)}
+
+.chips{margin-top:14px;display:grid;gap:8px}
+.crow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.cl{font-weight:600;font-size:.8rem;min-width:10em}
+.chip{font-family:"JetBrains Mono",monospace;font-size:.8rem;padding:2px 9px;border:2px solid var(--ink);background:var(--bg);display:inline-flex;gap:6px;align-items:center}
+.chip i{font-style:normal;background:var(--ink);color:var(--bg);width:16px;height:16px;display:inline-grid;place-items:center;font-size:.68rem;font-weight:700}
+.chip em{font-style:normal;color:var(--mute)}
+.chip.v{background:var(--o)}
+.chip.v em{color:var(--ink)}
+.chip.f{border-style:dashed}
+.chip.u{border-color:var(--line);color:var(--mute)}
+.chip.t{border-color:var(--ok);color:var(--ok);font-weight:700}
+
+@media(max-width:600px){.cl{min-width:100%}}

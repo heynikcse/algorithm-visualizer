@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Step-by-step Dijkstra shortest path visualizer">
+<meta name="theme-color" content="#ff6a00">
+<title>Dijkstra | Algorithm Lab</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800;900&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/dijkstra.css">
+</head>
+<body>
+<header id="siteNav"></header>
+
+<main id="top" class="wrap">
+  <section class="hero">
+    <div class="hero-box">
+      <h1>See every step of Dijkstra's algorithm.</h1>
+      <p>Enter your graph and read each iteration: find the minimum, label it, update the neighbours, then trace the labels back to get the shortest path.</p>
+      <div class="cta">
+        <a class="btn" href="#graph">Build a graph</a>
+        <a class="btn" href="#steps-sec">Read the steps</a>
+      </div>
+      <div class="pills"><span class="pill">Directed or undirected</span><span class="pill">Draw edges on the graph</span><span class="pill">Target and visited nodes</span><span class="pill">Label format [distance, previous]</span></div>
+    </div>
+  </section>
+
+  <section class="blk" id="graph">
+    <h2 class="sec-h">Graph</h2>
+    <p class="sec-s">Type your vertices (or just a number like 5) and the nodes appear straight away. Then add edges and a source. Weights must be zero or more.</p>
+    <div class="work">
+      <div class="box card" id="inputCard" aria-label="Graph input">
+        <h2>Your graph</h2>
+        <label for="verts">Vertices (separate with commas or spaces)</label>
+        <input id="verts" placeholder="e.g. s, a, b, t  or just a number like 5" autocomplete="off">
+        <div style="margin:16px 0 4px"><label>Edges</label>
+          <div class="row head"><span>From</span><span>To</span><span>Weight</span><span>Direction</span><span></span></div>
+          <div id="edges"></div>
+          <button id="addEdge" type="button">Add edge</button>
+        </div>
+        <label for="src" style="margin-top:16px">Source vertex</label>
+        <input id="src" placeholder="first vertex if left empty" autocomplete="off">
+        <label for="tgt" style="margin-top:16px">Target vertex (optional)</label>
+        <input id="tgt" placeholder="leave empty to find paths to every vertex" autocomplete="off">
+        <label class="chk"><input type="checkbox" id="stop" checked> Stop as soon as the target is labelled</label>
+        <div class="bar">
+          <button class="primary" id="run" type="button">Run Dijkstra</button>
+          <button id="ex" type="button">Load example</button>
+          <button id="clr" type="button">Clear</button>
+        </div>
+        <div class="err" id="err" role="alert"></div>
+      </div>
+      <div class="box card" aria-label="Graph view">
+        <h2>Graph view</h2>
+        <div class="mode"><label for="newdir">Edges drawn on the graph are</label><select id="newdir"><option value="D">Directed</option><option value="U">Undirected</option></select></div>
+        <div class="ghint" id="ghint"></div>
+        <div class="gwrap"><svg id="svg" viewBox="0 0 420 340" aria-label="Graph drawing"></svg><input id="gedit" hidden aria-label="Edit value"></div>
+        <div class="gmsg" id="gmsg" role="alert"></div>
+        <div class="gnav">
+          <button id="prev" type="button" disabled>Previous</button>
+          <button id="next" type="button" disabled>Next</button>
+          <span id="stepLabel">Type vertices to begin.</span>
+        </div>
+        <div class="chips" id="chips"></div>
+        <div class="legend"><span><i class="sw v"></i>Visited (number = order)</span><span><i class="sw c"></i>Current</span><span><i class="sw f"></i>Temporary label</span><span><i class="sw t"></i>Target</span><span><i class="sw p"></i>Path to target</span></div>
+        <p class="legend2">Every edge you draw is added to the Edges table on the left, and edits in the table update the graph.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="blk" id="steps-sec">
+    <h2 class="sec-h">Steps</h2>
+    <p class="sec-s">Tap an iteration to show that moment in the graph.</p>
+    <div id="steps"></div>
+  </section>
+
+  <section class="blk" id="result">
+    <h2 class="sec-h">Result</h2>
+    <p class="sec-s">Each shortest path is found by following the previous-vertex part of the labels back to the source.</p>
+    <div id="final"></div>
+  </section>
+</main>
+
+<footer id="siteFooter"></footer>
+
+<script src="js/common.js"></script>
+<script>mountNav('dijkstra');mountFooter();</script>
+<script src="js/dijkstra.js"></script>
+</body>
+</html>
