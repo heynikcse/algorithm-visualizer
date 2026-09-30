@@ -1,12 +1,17 @@
 /* prims.js  (needs js/common.js loaded first: it provides $ and esc)
 
-   Prim's algorithm:
-     Step 1: Choose a start vertex s. Add s to the tree V_MST = {s}.
-     Step 2: Find the cheapest cut edge connecting a vertex in V_MST to a vertex outside V_MST
-             (or vertex outside with minimum key).
-     Step 3: Add that edge and vertex to the tree.
-     Step 4: Update keys/parents for unvisited neighbors of the newly added vertex.
-     Step 5: Repeat until all vertices are in the tree (n - 1 edges) or no cut edges exist.
+   Prim's algorithm, weight-matrix method.
+
+   W = W(G) = [w_ij] is an n x n matrix with
+     1) w_ii = infinity for 1 <= i <= n
+     2) w_ij = w_ji = weight of the edge (V_i, V_j) if V_i and V_j are adjacent
+     3) w_ij = w_ji = infinity if V_i and V_j are not adjacent
+
+   Iteration 1      : choose the start vertex. Mark its row (check) and delete its column.
+   Iteration 2 .. n : among the entries that lie in a marked row AND an undeleted column, take the
+                      smallest one, w_ij. Edge (V_i, V_j) joins the tree. Mark row j, delete column j.
+   Stop when every column is deleted: n iterations and n - 1 edges.
+   If every candidate entry is infinity, the graph is disconnected and the algorithm stops early.
 */
 
 const INF = Infinity;
@@ -117,155 +122,127 @@ function draft(p) {
   };
 }
 
-/* Helper to get cut edges crossing between inTree and outside */
-function getCutEdges(inTree, adj) {
-  const list = [];
-  const seen = new Set();
-  inTree.forEach(u => {
-    (adj[u] || []).forEach(e => {
-      if (!inTree.has(e.to)) {
-        const k = edgeKey(e.u, e.v);
-        if (!seen.has(k)) {
-          seen.add(k);
-          list.push({ u: e.u, v: e.to, w: e.w, i: e.i });
-        }
-      }
-    });
+/* ---------- the weight matrix W = W(G) ---------- */
+function buildMatrix(V, E) {
+  const n = V.length, idx = {};
+  V.forEach((v, i) => idx[v] = i);
+  // rules 1 and 3: start with infinity everywhere, so w_ii and non-adjacent pairs stay infinity
+  const W = Array.from({ length: n }, () => Array(n).fill(INF));
+  const Wi = Array.from({ length: n }, () => Array(n).fill(null)); // which edge gave w_ij
+  const cnt = {};
+  let loops = 0;
+  E.forEach((e, k) => {
+    const i = idx[e.u], j = idx[e.v];
+    if (i === j) { loops++; return; } // a self-loop never joins two vertices, so w_ii stays infinity
+    const key = edgeKey(e.u, e.v);
+    (cnt[key] = cnt[key] || { n: 0, label: nm(e.u, e.v) }).n++;
+    if (e.w < W[i][j]) { // rule 2: w_ij = w_ji = weight (parallel edges: keep the lightest)
+      W[i][j] = W[j][i] = e.w;
+      Wi[i][j] = Wi[j][i] = k;
+    }
   });
-  return list.sort((a, b) => a.w - b.w || a.i - b.i);
+  const dups = Object.values(cnt).filter(c => c.n > 1).map(c => c.label);
+  return { W, Wi, idx, dups, loops };
 }
 
 function solve({ V, E, s }) {
   const n = V.length, need = n - 1;
-  const adj = {};
-  V.forEach(v => adj[v] = []);
-  E.forEach((e, i) => {
-    if (e.u === e.v) return; // self loops never cross a cut
-    adj[e.u].push({ to: e.v, w: e.w, i, u: e.u, v: e.v });
-    adj[e.v].push({ to: e.u, w: e.w, i, u: e.v, v: e.u });
-  });
+  const { W, Wi, idx, dups, loops } = buildMatrix(V, E);
 
-  const inTree = new Set();
-  const ord = {};
-  const key = {};
-  const parent = {};
-  const parentEdgeIndex = {};
-
-  V.forEach(v => {
-    key[v] = INF;
-    parent[v] = null;
-    parentEdgeIndex[v] = null;
-  });
-
-  key[s] = 0;
-  inTree.add(s);
-  ord[s] = 1;
-
-  // Initial update for neighbors of s
-  const initUpdates = [];
-  (adj[s] || []).forEach(e => {
-    if (e.w < key[e.to]) {
-      key[e.to] = e.w;
-      parent[e.to] = s;
-      parentEdgeIndex[e.to] = e.i;
-      initUpdates.push({ z: e.to, w: e.w, oldK: INF, newK: e.w, newP: s, better: true });
-    }
-  });
-
+  const marked = new Set();   // marked rows    = vertices already in the tree
+  const deleted = new Set();  // deleted columns = the same vertices
+  const ord = {};             // vertex -> iteration in which it joined the tree
+  const tKey = {}, tPar = {}; // [w, p] label of a vertex once it has joined
   const chosenEdges = [];
   let totalWeight = 0;
 
-  const snap = (justAddedV, justAddedE, justAddedW) => ({
-    justAddedV,
-    justAddedE,
-    justAddedW,
-    inTreeCount: inTree.size,
-    treeVertices: V.filter(v => inTree.has(v)).sort((a, b) => ord[a] - ord[b]),
+  // candidate entries: finite, in a marked row and an undeleted column (top to bottom, left to right)
+  const candidates = () => {
+    const c = [];
+    for (let i = 0; i < n; i++) {
+      if (!marked.has(i)) continue;
+      for (let j = 0; j < n; j++) if (!deleted.has(j) && W[i][j] < INF) c.push({ i, j, w: W[i][j] });
+    }
+    return c;
+  };
+
+  // label [w, p] shown under a vertex on the graph = smallest entry of its column among the marked rows
+  const labelOf = v => {
+    const j = idx[v];
+    if (marked.has(j)) return { key: tKey[v], parent: tPar[v] };
+    let best = INF, bp = null;
+    for (let i = 0; i < n; i++) if (marked.has(i) && W[i][j] < best) { best = W[i][j]; bp = V[i]; }
+    return { key: best, parent: bp };
+  };
+
+  const snap = (justV, justE, justW) => ({
+    justAddedV: justV,
+    justAddedE: justE,
+    justAddedW: justW,
+    inTreeCount: marked.size,
+    treeVertices: V.filter((v, i) => marked.has(i)).sort((a, b) => ord[a] - ord[b]),
     chosenEdges: chosenEdges.slice(),
     totalWeight,
-    L: V.map(v => ({
-      v,
-      key: key[v],
-      parent: parent[v],
-      inTree: inTree.has(v),
-      ord: ord[v] || null
-    })),
-    cutEdges: getCutEdges(inTree, adj)
+    L: V.map((v, i) => {
+      const l = labelOf(v);
+      return { v, key: l.key, parent: l.parent, inTree: marked.has(i), ord: ord[v] || null };
+    }),
+    cutEdges: candidates().map(c => ({ u: V[c.i], v: V[c.j], w: c.w, i: Wi[c.i][c.j] }))
   });
 
-  const snaps = [snap(s, null, 0)];
+  const copyState = extra => Object.assign({ marked: new Set(marked), deleted: new Set(deleted), cand: [], chosen: null }, extra);
+
+  const snaps = [snap(null, null, 0)];
   const its = [];
-  let stoppedDisconnected = false;
+  let stoppedDisconnected = false, stop = null;
 
-  while (inTree.size < n) {
-    const candVertices = V.filter(v => !inTree.has(v) && key[v] < INF);
-    const cutEdges = getCutEdges(inTree, adj);
+  for (let k = 1; k <= n; k++) {
+    let v, u = null, w = 0, edgeIdx = null, cand = [], chosen = null, ties = [], mat;
 
-    if (!candVertices.length) {
-      stoppedDisconnected = true;
-      break;
+    if (k === 1) {
+      v = s;                               // iteration 1: the start vertex
+    } else {
+      cand = candidates();
+      if (!cand.length) {                  // every candidate entry is infinity
+        stoppedDisconnected = true;
+        stop = { k, mat: copyState({}) };
+        break;
+      }
+      chosen = cand.reduce((b, c) => c.w < b.w ? c : b, cand[0]); // first smallest entry
+      ties = cand.filter(c => c !== chosen && c.w === chosen.w);
+      u = V[chosen.i]; v = V[chosen.j]; w = chosen.w;
+      edgeIdx = Wi[chosen.i][chosen.j];
+      mat = copyState({ cand, chosen });   // matrix at the moment of the decision
     }
 
-    // Pick vertex with minimum key (ties keep original V order)
-    const nextV = candVertices.reduce((best, v) => (key[v] < key[best] ? v : best), candVertices[0]);
-    const u = parent[nextV];
-    const w = key[nextV];
-    const edgeIdx = parentEdgeIndex[nextV];
-
-    inTree.add(nextV);
-    ord[nextV] = inTree.size;
-    chosenEdges.push(edgeIdx);
+    // mark the row and delete the column of the new vertex
+    const j = idx[v];
+    marked.add(j); deleted.add(j);
+    ord[v] = marked.size;
+    tKey[v] = w; tPar[v] = u;
+    if (edgeIdx != null) chosenEdges.push(edgeIdx);
     totalWeight += w;
-
-    // Update keys for neighbors of nextV
-    const updates = [];
-    (adj[nextV] || []).filter(e => !inTree.has(e.to)).forEach(e => {
-      const z = e.to;
-      const oldK = key[z];
-      const oldP = parent[z];
-      const better = e.w < oldK;
-      if (better) {
-        key[z] = e.w;
-        parent[z] = nextV;
-        parentEdgeIndex[z] = e.i;
-      }
-      updates.push({
-        z,
-        w: e.w,
-        oldK,
-        oldP,
-        newK: key[z],
-        newP: parent[z],
-        better
-      });
-    });
+    if (k === 1) mat = copyState({ cand: candidates() }); // matrix after marking the start row
 
     its.push({
-      k: its.length + 1,
-      v: nextV,
-      u,
-      w,
-      cutEdges,
-      edgeIdx,
-      ord: ord[nextV],
+      k, v, u, w, ord: marked.size, edgeIdx, cand, chosen, ties, mat,
       totalWeight,
-      updates,
-      done: inTree.size === n,
-      edgesSelected: chosenEdges.length
+      edgesSelected: chosenEdges.length,
+      done: marked.size === n
     });
-
-    snaps.push(snap(nextV, edgeIdx, w));
+    snaps.push(snap(v, edgeIdx, w));
   }
 
+  const picks = new Set(its.filter(t => t.chosen).map(t => t.chosen.i * n + t.chosen.j));
   return {
-    V, E, s, its, snaps, totalWeight,
+    V, E, s, W, Wi, dups, loops, its, snaps, totalWeight,
     chosenEdges,
-    complete: inTree.size === n,
+    complete: marked.size === n,
     need,
     stoppedDisconnected,
-    finalTreeVertices: V.filter(v => inTree.has(v)).sort((a, b) => ord[a] - ord[b]),
-    finalUnreachable: V.filter(v => !inTree.has(v)),
-    initUpdates
+    stop,
+    finalUnreachable: V.filter((v, i) => !marked.has(i)),
+    finalMat: copyState({ picks })
   };
 }
 
@@ -387,50 +364,34 @@ const snapLine = sn => sn.L.map(o =>
   `<span class="${o.inTree ? 'p' : o.key < INF ? 't' : ''}">${o.inTree ? 'Tree' : 'Key'}(${esc(o.v)})</span> = ${lab(o.key, o.parent)}`
 ).join(',&nbsp; ');
 
-/* ---------- the Vertex / Key / Parent / Tree table ---------- */
-function tableHTML(sn) {
-  const S2 = S.V;
-  const st = {};
-  sn.L.forEach(o => st[o.v] = o);
-
-  const r1 = S2.map(v => {
-    const isCur = sn.justAddedV === v;
-    return `<td class="${isCur ? 'cur' : ''}">${esc(v)}</td>`;
-  }).join('');
-
-  const r2 = S2.map(v => {
-    const o = st[v];
-    const isCur = sn.justAddedV === v;
-    const txt = o.key === INF ? '∞' : o.key;
-    return `<td class="${isCur ? 'cur' : ''}">${txt}</td>`;
-  }).join('');
-
-  const r3 = S2.map(v => {
-    const o = st[v];
-    const isCur = sn.justAddedV === v;
-    return `<td class="${isCur ? 'cur' : ''}">${o.parent ? esc(o.parent) : '–'}</td>`;
-  }).join('');
-
-  const r4 = S2.map(v => {
-    const o = st[v];
-    const isCur = sn.justAddedV === v;
-    if (o.inTree) {
-      return `<td class="${isCur ? 'cur' : 'yes'}">${v === S.s ? 'Root' : `Yes (#${o.ord})`}</td>`;
-    } else if (o.key < INF) {
-      return `<td class="fringe">Fringe</td>`;
-    } else {
-      return `<td class="pend">–</td>`;
-    }
-  }).join('');
-
-  return `<div class="tabwrap"><table class="etab">
-    <tr><th class="rh" scope="row">Vertex</th>${r1}</tr>
-    <tr><th class="rh" scope="row">Key</th>${r2}</tr>
-    <tr><th class="rh" scope="row">Parent</th>${r3}</tr>
-    <tr><th class="rh" scope="row">In Tree</th>${r4}</tr>
-  </table></div>`;
+/* ---------- the matrix W shown inside the step cards (uses the existing .etab styles) ---------- */
+function matrixHTML(m) {
+  const { V, W } = S, n = V.length;
+  const cand = new Set((m.cand || []).map(c => c.i * n + c.j));
+  const picks = m.picks || new Set();
+  let h = '<div class="tabwrap"><table class="etab"><tr><th class="rh" scope="col">W</th>';
+  V.forEach((v, j) => {
+    h += m.deleted.has(j)
+      ? `<th style="color:var(--mute)" title="column deleted"><s>${esc(v)}</s></th>`
+      : `<th>${esc(v)}</th>`;
+  });
+  h += '</tr>';
+  V.forEach((v, i) => {
+    h += `<tr><th class="rh" scope="row">${esc(v)}${m.marked.has(i) ? ' ✓' : ''}</th>`;
+    V.forEach((_, j) => {
+      const isChosen = m.chosen && m.chosen.i === i && m.chosen.j === j;
+      let cls = '';
+      if (isChosen || picks.has(i * n + j)) cls = 'cur';
+      else if (m.deleted.has(j)) cls = 'pend';
+      else if (cand.has(i * n + j)) cls = 'fringe';
+      const strike = cls === 'pend' ? ' style="text-decoration:line-through"' : '';
+      h += `<td class="${cls}"${strike}>${f(W[i][j])}</td>`;
+    });
+    h += '</tr>';
+  });
+  return h + '</table></div>';
 }
-const tnote = '<p class="tnote">In Tree: Root = start vertex, Yes (#) = added to MST in step #. Fringe = candidate neighbor with finite key. – = not yet reached.</p>';
+const tnote = '<p class="tnote">&#10003; = marked row (vertex already in the tree). Struck-out column = deleted column. Shaded entries = candidates (marked row, undeleted column). Orange = the entry chosen.</p>';
 
 /* ---------- step cards and result ---------- */
 function render() {
@@ -440,65 +401,74 @@ function render() {
     return;
   }
 
-  const { its, snaps, V, s, need, complete, totalWeight, finalTreeVertices, finalUnreachable } = S;
+  const { its, snaps, V, s, need, complete, finalUnreachable } = S;
   const n = V.length;
+  const name = i => esc(V[i]);
+  const ent = c => `w(${name(c.i)},${name(c.j)}) = ${c.w}`;
 
-  let h = `<div class="it box" data-i="0"><h3>Initialisation</h3>
-    <div class="st">
-      <div>Start vertex <b>${esc(s)}</b> is chosen as the root of the tree: <span class="p">V<sub>MST</sub> = {${esc(s)}}</span>.</div>
-      <div>Initialize keys: <span class="mono">Key(${esc(s)}) = [0, -]</span>. Every other vertex gets <span class="mono">[∞, -]</span>.</div>
-      ${snaps[0].cutEdges.length
-        ? `<div>Candidate cut edges incident to <b>${esc(s)}</b>: ${snaps[0].cutEdges.map(e => `${nm(e.u, e.v)} (weight ${e.w})`).join(', ')}.</div>`
-        : `<div>No edges connected to <b>${esc(s)}</b>.</div>`}
+  /* initialisation: build W */
+  let h = `<div class="it box" data-i="0"><h3>Initialisation: weight matrix</h3>
+    <div class="st"><b>Build W = W(G) = [w<sub>ij</sub>], an n &times; n matrix (n = ${n})</b>
+      <div>Vertex order: ${V.map((v, i) => `V<sub>${i + 1}</sub> = ${esc(v)}`).join(', ')}</div>
+      <div>1) w<sub>ii</sub> = &infin; for 1 &le; i &le; n</div>
+      <div>2) w<sub>ij</sub> = w<sub>ji</sub> = weight of the edge (V<sub>i</sub>, V<sub>j</sub>) if V<sub>i</sub> and V<sub>j</sub> are adjacent</div>
+      <div>3) w<sub>ij</sub> = w<sub>ji</sub> = &infin; if V<sub>i</sub> and V<sub>j</sub> are not adjacent</div>
+      ${S.dups.length ? `<div>Parallel edges between ${S.dups.join(', ')}: the lightest one is used.</div>` : ''}
+      ${S.loops ? `<div>Self-loops are ignored because w<sub>ii</sub> is always &infin;.</div>` : ''}
     </div>
-    ${tableHTML(snaps[0])}
-    ${tnote}
+    ${matrixHTML({ marked: new Set(), deleted: new Set(), cand: [], chosen: null })}
+    <div class="st"><b>Plan: one iteration per vertex (${n} iterations)</b>
+      <div>Iteration 1 chooses the start vertex <b>${esc(s)}</b>, marks its row and deletes its column.</div>
+      <div>Each later iteration takes the smallest entry in the marked rows and undeleted columns, adds that edge, marks the new row and deletes the new column.</div>
+      <div>The label [w, p] under a vertex on the graph is the smallest entry of its column among the marked rows (p = that row).</div>
+    </div>
     <div class="snap">${snapLine(snaps[0])}</div>
   </div>`;
 
-  its.forEach((it, idx) => {
-    const isLast = idx === its.length - 1;
-    h += `<div class="it box" data-i="${idx + 1}"><h3>Iteration ${idx + 1}</h3>
-      <div class="st"><b>Step 1: Inspect candidate cut edges and choose the minimum</b>
-        <div>Candidate cut edges crossing the cut (Tree &harr; Outside): ${it.cutEdges.length ? it.cutEdges.map(e => `${nm(e.u, e.v)} (wt ${e.w})`).join(', ') : 'none'}</div>
-        <div>Minimum weight cut edge is <span class="p">${nm(it.u, it.v)}</span> with weight <b>${it.w}</b>.</div>
-        <div>Selected vertex: <b>${esc(it.v)}</b> with label <span class="p">${lab(it.w, it.u)}</span>.</div>
-      </div>
-      <div class="st"><b>Step 2: Add edge and vertex to the minimum spanning tree</b>
-        <div>Add edge <span class="ok">${nm(it.u, it.v)}</span> to the MST and vertex <b>${esc(it.v)}</b> joins the tree (order ${it.ord}).</div>
-        <div>MST so far: ${it.edgesSelected} of ${need} edges selected · Cumulative weight: <b>${it.totalWeight}</b>.</div>
-        ${it.done ? `<div><span class="ok">Edges selected = ${it.edgesSelected}, which equals n − 1 = ${need}. The minimum spanning tree is complete. Stop.</span></div>` : ''}
-      </div>
-      <div class="st"><b>Step 3: Update candidate keys for neighbors of newly added vertex ${esc(it.v)}</b>`;
-
-    if (!it.updates.length) {
-      h += `<div>No outgoing edge to an unvisited vertex; candidate keys remain unchanged.</div>`;
+  /* iterations 1..n */
+  its.forEach(it => {
+    const k = it.k, m = it.mat;
+    h += `<div class="it box" data-i="${k}"><h3>Iteration ${k}</h3>`;
+    if (k === 1) {
+      h += `<div class="st"><b>Step 1: Choose the start vertex</b>
+          <div>Start vertex is <span class="p">${esc(it.v)}</span> (V<sub>${V.indexOf(it.v) + 1}</sub>).</div></div>
+        <div class="st"><b>Step 2: Mark its row and delete its column</b>
+          <div>Mark row ${esc(it.v)} (&#10003;) and delete column ${esc(it.v)}. Now V<sub>MST</sub> = {${esc(it.v)}} with 0 of ${need} edges selected.</div>
+          ${it.done ? '<div><span class="ok">There is only one vertex, so the tree is complete. Stop.</span></div>' : ''}</div>
+        ${matrixHTML(m)}${tnote}`;
     } else {
-      it.updates.forEach(u => {
-        h += `<div>Key(${esc(u.z)}) = min(Key(${esc(u.z)}), w(${esc(it.v)}, ${esc(u.z)})) = min(${f(u.oldK)}, ${u.w}) = ${f(u.newK)} &rarr; <span class="t">${lab(u.newK, u.newP)}</span> (${u.better ? 'updated: cheaper connection found' : 'no change'})</div>`;
-      });
+      const rows = V.filter((_, i) => m.marked.has(i)).map(esc).join(', ');
+      const cols = V.filter((_, j) => !m.deleted.has(j)).map(esc).join(', ');
+      const shown = it.cand.slice(0, 30).map(ent).join(', ') + (it.cand.length > 30 ? `, and ${it.cand.length - 30} more` : '');
+      h += `<div class="st"><b>Step 1: Look at the marked rows and the undeleted columns</b>
+          <div>Marked rows: ${rows}. Undeleted columns: ${cols}.</div>
+          <div>Entries to compare (&infin; entries are ignored): ${shown}</div></div>
+        <div class="st"><b>Step 2: Choose the smallest entry</b>
+          <div>The smallest entry is <span class="p">${ent(it.chosen)}</span> (row ${name(it.chosen.i)}, column ${name(it.chosen.j)}).</div>
+          ${it.ties.length ? `<div>Tie with ${it.ties.map(ent).join(', ')}: the first one found (top to bottom, left to right) is taken.</div>` : ''}
+          <div>So edge <span class="ok">${nm(it.u, it.v)}</span> is chosen and vertex <b>${esc(it.v)}</b> joins the tree.</div></div>
+        ${matrixHTML(m)}
+        <div class="st"><b>Step 3: Add the edge, mark the new row and delete the new column</b>
+          <div>Add edge <span class="ok">${nm(it.u, it.v)}</span> (weight ${it.w}) to the MST. Mark row ${esc(it.v)} (&#10003;) and delete column ${esc(it.v)}.</div>
+          <div>Edges selected: ${it.edgesSelected} of ${need} &middot; Cumulative weight: <b>${it.totalWeight}</b></div>
+          ${it.done ? `<div><span class="ok">All ${n} columns are deleted and ${it.edgesSelected} = n &minus; 1 edges are selected. The minimum spanning tree is complete. Stop.</span></div>` : ''}</div>`;
     }
-
-    h += `</div>
-      ${tableHTML(snaps[idx + 1])}
-      ${idx === 0 ? tnote : ''}
-      <div class="snap">${snapLine(snaps[idx + 1])}</div>
-    </div>`;
+    h += `<div class="snap">${snapLine(snaps[k])}</div></div>`;
   });
 
   if (S.stoppedDisconnected) {
-    h += `<div class="it box on" style="border-color:var(--bad)"><h3>Termination: Disconnected Graph</h3>
-      <div class="st">
-        <div>No candidate cut edges remain connecting the tree to unvisited vertices: <b>${finalUnreachable.map(esc).join(', ')}</b>.</div>
-        <div><span class="no">The graph is not connected, so no spanning tree exists for the whole graph. Prim's algorithm has constructed the MST for the connected component of ${esc(s)}. Stop.</span></div>
-      </div>
+    h += `<div class="it box" data-i="${snaps.length - 1}" style="border-color:var(--bad)"><h3>Iteration ${S.stop.k}: no edge available</h3>
+      <div class="st"><b>Step 1: Look at the marked rows and the undeleted columns</b>
+        <div>Every entry in the marked rows and undeleted columns is &infin;, so no edge can join a new vertex.</div></div>
+      ${matrixHTML(S.stop.mat)}
+      <div class="st"><div><span style="color:var(--bad);font-weight:700">Vertices ${finalUnreachable.map(esc).join(', ')} cannot be reached from ${esc(s)}, so the graph is not connected and has no spanning tree. The algorithm stops after ${snaps.length - 1} of ${n} iterations, with the tree of the component of ${esc(s)}.</span></div></div>
     </div>`;
   }
 
   $('steps').innerHTML = h;
   $('steps').querySelectorAll('.it').forEach(el => el.onclick = () => go(+el.dataset.i));
 
-  /* Final results */
+  /* final results */
   const last = snaps[snaps.length - 1];
   const edges = last.chosenEdges.map(ei => S.E[ei]);
 
@@ -511,28 +481,28 @@ function render() {
   if (edges.length) {
     let cum = 0;
     f2 += `<h3 style="margin:16px 0 8px;font-size:1.05rem">Edges selected in the MST</h3>
-    <table><tr><th>Step</th><th>Edge</th><th>Weight</th><th>Cut bridged (Tree &rarr; New Vertex)</th><th>Cumulative weight</th></tr>`;
+    <table><tr><th>Iteration</th><th>Edge</th><th>Weight</th><th>Cut bridged (Tree &rarr; New Vertex)</th><th>Cumulative weight</th></tr>`;
     edges.forEach((e, j) => {
       cum += e.w;
       f2 += `<tr>
-        <td class="mono" data-l="Step">${j + 1}</td>
+        <td class="mono" data-l="Iteration">${j + 2}</td>
         <td class="mono" data-l="Edge">${nm(e.u, e.v)}</td>
         <td class="mono" data-l="Weight">${e.w}</td>
         <td data-l="Cut bridged">${esc(e.u)} &harr; ${esc(e.v)}</td>
         <td class="mono" data-l="Cumulative">${cum}</td>
       </tr>`;
     });
-    f2 += `<tr><td class="mono" data-l="Step">–</td><td data-l="Edge"><b>Total</b></td><td class="mono" data-l="Weight"><b>${last.totalWeight}</b></td><td data-l="Cut bridged">–</td><td class="mono" data-l="Cumulative"><b>${last.totalWeight}</b></td></tr></table>`;
+    f2 += `<tr><td class="mono" data-l="Iteration">–</td><td data-l="Edge"><b>Total</b></td><td class="mono" data-l="Weight"><b>${last.totalWeight}</b></td><td data-l="Cut bridged">–</td><td class="mono" data-l="Cumulative"><b>${last.totalWeight}</b></td></tr></table>`;
   }
 
   f2 += `<h3 style="margin:22px 0 8px;font-size:1.05rem">Vertex connections in the MST</h3>
-  <table><tr><th>Vertex</th><th>Joined in step</th><th>Parent in tree</th><th>Connecting edge weight</th><th>Status</th></tr>`;
+  <table><tr><th>Vertex</th><th>Joined in iteration</th><th>Parent in tree</th><th>Connecting edge weight</th><th>Status</th></tr>`;
   V.forEach(v => {
     const o = last.L.find(l => l.v === v);
     if (!o || !o.inTree) {
       f2 += `<tr>
         <td class="mono" data-l="Vertex">${esc(v)}</td>
-        <td class="mono" data-l="Step">–</td>
+        <td class="mono" data-l="Iteration">–</td>
         <td class="mono" data-l="Parent">–</td>
         <td class="mono" data-l="Weight">–</td>
         <td data-l="Status" style="color:var(--bad)">Not reached (disconnected)</td>
@@ -540,7 +510,7 @@ function render() {
     } else if (v === s) {
       f2 += `<tr style="background:var(--soft)">
         <td class="mono" data-l="Vertex"><b>${esc(v)}</b></td>
-        <td class="mono" data-l="Step">Root (Initial)</td>
+        <td class="mono" data-l="Iteration">1 (start)</td>
         <td class="mono" data-l="Parent">–</td>
         <td class="mono" data-l="Weight">0</td>
         <td data-l="Status" class="ok">Start vertex</td>
@@ -548,14 +518,15 @@ function render() {
     } else {
       f2 += `<tr>
         <td class="mono" data-l="Vertex"><b>${esc(v)}</b></td>
-        <td class="mono" data-l="Step">${o.ord}</td>
+        <td class="mono" data-l="Iteration">${o.ord}</td>
         <td class="mono" data-l="Parent">${esc(o.parent)}</td>
         <td class="mono" data-l="Weight">${o.key}</td>
         <td data-l="Status" class="ok">In MST</td>
       </tr>`;
     }
   });
-  f2 += `</table><h3 style="margin:22px 0 8px;font-size:1.05rem">Final vertex state table</h3>${tableHTML(last)}${tnote}</div>`;
+  f2 += `</table><h3 style="margin:22px 0 8px;font-size:1.05rem">Final matrix</h3>${matrixHTML(S.finalMat)}
+    <p class="tnote">${complete ? 'Every row is marked and every column is deleted.' : 'Rows and columns of unreached vertices stay unmarked.'} Orange entries are the edges chosen for the minimum spanning tree.</p></div>`;
 
   $('final').innerHTML = f2;
 }
